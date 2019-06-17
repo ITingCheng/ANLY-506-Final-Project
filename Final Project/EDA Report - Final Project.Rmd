@@ -1,0 +1,150 @@
+---
+title: 'EDA Report: Life Expectancy'
+author: "I-Ting Cheng"
+date: "June 15, 2019"
+output:
+  word_document: default
+  pdf_document: default
+  html_document:
+    df_print: paged
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Import your data
+```{r data import, echo=FALSE, Message=FALSE,results="hide", Warning=FALSE}
+library(dplyr)
+library(ggplot2)
+library(corrplot)
+library(psych)
+library(tidyr)
+library(tinytex) 
+library(knitr)
+library(readxl)
+gapminder <- read.csv("C:/Users/user/Desktop/Harrisburg U/Exploartory Data Analysis/gapminder.csv")
+View(gapminder)
+``` 
+
+### Set up your questions
+In this study, we would like to explore how different factors are influencing the life expectancy and identify the relationships between these factors and life expectancy (strong or weak; positive or negative.) Below are some questions we'd like to answer after conducting exploratory data analysis:
+1. Does life expectancy changes throughout the years?
+2. Does different country have distinct life expectancy?
+3. Does population influence life expectancy?
+4. Does income have to do with life expectancy?
+5. Does every region have different life expectancy?
+
+### Describe your data 
+This dataset has 41284 observations with 6 variables. In order to identify which factors have the most impact on life expectancy, we will conduct an correlation plot first and see how different factors influence life expectancy andd conduct an exploratory analysis using country, year, population, income and region as our explanatory variables and life expectancy as the dependent variables. We will also plot out their relationships to visualize the result. 
+```{r data Overview, echo=FALSE,Message=FALSE,results="hide", Warning=FALSE}
+str(gapminder)
+summary(gapminder)
+```
+o   how many observations: `r nrow(gapminder)` observations
+o   how many variables: `r ncol(gapminder)` variables
+o   type of variables: 
+    - Country   : `r class(gapminder$Country)` 
+    - Year      : `r class(gapminder$Year)` 
+    - life      : `r class(gapminder$life)` 
+    - population: `r class(gapminder$population)` 
+    - income    : `r class(gapminder$income)` 
+    - region    : `r class(gapminder$region)` 
+o   how disperse is your data, range of variables
+    $ Country   : 197 countries in the dataset
+    $ Year      : ranging from 1800 - 2015
+    $ life      : ranging from 1 - 84.10, the mean is 42.88
+    $ population: a lot of missing values, will wrangle
+    $ income    : ranging from 142 - 182668, the mean is 4571
+    $ region    : America - 7961 data, East Asia & Pacific - 6256,  Europe & Central -                       Asia has 10468, Middle East & North Africa has 4309, South Asia -
+                  1728, Sub-Saharan Africa - 10562
+o  data wrangling: Viewing the dataset, theres's a lot of missing data in here, so what we're going to do is to impute the missing data.  
+```{r impute missing values, echo=FALSE, Message=FALSE, results="hide", Warning=FALSE}
+gapminder <- filter(gapminder, !is.na(gapminder$income))
+gapminder$population <- as.numeric(as.character(gapminder$population))
+gapminder <- gapminder %>% fill(population)
+summary(gapminder)
+```
+o  preprocessing steps: In order to identify different variables' relationships with life expectancy, I first transfer all the variables into numeric and run a correlation plot. 
+```{r data preprocessing, echo=FALSE, Message=FALSE, results="hide", Warning=FALSE}
+gapminder$Country <- as.numeric(gapminder$Country)
+gapminder$population <- as.numeric(gapminder$population)
+gapminder$region <- as.numeric(gapminder$region)
+gapminder$Year <- as.numeric(gapminder$Year)
+gapminder$income <- as.numeric(gapminder$income)
+```
+
+### Plot out your data 
+```{r data Overview plot, echo=FALSE, Message=FALSE, Warning=FALSE}
+plot(density(gapminder$Country))
+plot(density(gapminder$Year))
+plot(density(gapminder$life))
+plot(density(gapminder$population))
+plot(density(gapminder$income))
+plot(density(gapminder$region))
+```
+
+
+##correlation plot
+In this correlation plot, we can easily see which variables have the most impact on life expectancy. In this plot, year has the most significant impact to life expectancy,followed by income, region and population. Our next step is to see how these variables interact with life expectancy and visulize the result. 
+```{r Correlation plot, echo=FALSE, Message=FALSE, Warning=FALSE}
+cor<- cor(gapminder,use="pairwise", method="pearson")
+corrplot(cor, na.label = " ")
+```
+
+## Life Expectancy by Year
+When viewing the plot, we can see that life expectancy has been growing years over years. But in year 1920s, there's a huge decrease in life expectancy, perhaps it has something to do with the economic background during that period. In 1950 - 2000, the life expectancy bloom dramatically, meaning people have a greater life expectancy during recent years. 
+```{r Life Expectancy by Year, echo=FALSE,Message=FALSE,Warning=FALSE}
+ggplot(data=gapminder, aes(x=Year,y=life))+
+       geom_bar(aes(fill=gapminder$life), stat="identity")+
+       ggtitle("Life Expectancy by Year")+
+       xlab("Year")+
+       ylab("Life Expectancy")
+```
+
+## Life Expectancy by Income
+When viewing the plot, we can see that when GDP gets higher, the life expectancy gets higher as well. However, in this dataset, most of the GDP are ranging from 883 (1st Qu) - 3483 (3rd Qu) which reflects the normal phenomemon. 
+```{r Life Expectancy by Income, echo=FALSE,Message=FALSE,Warning=FALSE}
+IncomeNorm <- filter(gapminder, income <= 50000)
+ggplot(data=IncomeNorm, aes(x=income,y=life))+
+       geom_point(aes(color=IncomeNorm$life), stat="identity")+
+       ggtitle("Life Expectancy by GDP")+
+       xlab("GDP")+
+       ylab("Life Expectancy")
+```
+
+## Life Expectancy by region
+When viewing the plot, we can see that Region 3 (Europe & Central Asia) has the higher average life expectancy and other regions have very identical average life expectancy. That is to say, region doesn't play an significant part of influencing people's life expectancy.
+
+```{r Life Expectancy by region, echo=FALSE,Message=FALSE,Warning=FALSE}
+boxplot(life~region,data=gapminder, names=c("America","EastAsia & Pacific","Europe & Central Asia","Middle East & North Africa","South Asia","Sub-Saharan Africa"),
+        xlab=("Region"), 
+        ylab=("Life Expectancy"))
+```
+
+## Life Expectancy by population
+When viewing the plot, we can see that when population gets bigger, the life expectancy doesn't necessarily grow higher. And most of the population falls within the same range and the life expectancy varies among different population. Therefore, no clear clue that population has something to do with life expectancy. 
+```{r Life Expectancy by population, echo=FALSE,Message=FALSE,Warning=FALSE}
+ggplot(data=gapminder, aes(x=population,y=life))+
+       geom_point(aes(color=gapminder$life), stat="identity")+
+       ggtitle("Life Expectancy by population")+
+       xlab("Population")+
+       ylab("Life Expectancy")
+```
+
+
+##Interpret the result
+1. Does life expectancy changes throughout the years?
+Yes, life expectancy has been growing years over years, especially in 1950 - 2000, life expectancy grew dramatically than it'd ever been. 
+
+2. Does different country influence the life expectancy?
+We don't see a significant relationship between country and life expectancy when viewing the corelation plot, therefore, we believe that country has a less significant impact on life expectancy. 
+
+3. Does population influence life expectancy?
+We do see a little relationship between population and life expectancy when viewing the corelation plot, however, when viewing into the Life Expectancy by population plot, most of the population falls within the same range yet the life expectancy varies in that range. Therefore, we believe population has a less significant impact on life expectancy.
+
+4. Does income(GDP) have to do with life expectancy?
+Yes, when viewing the Life expectancy by GDP plot, we can see that when GDP gets higher, the life expectancy gets higher. Therefore, GDP is a significant index for life expectancy.
+
+5. Does every region have different life expectancy?
+Not necessarily, most of the region has a similar average life expectancy. Although region 3 has a higher average life expectancy, we cannot certainly conclude that region is a significant factor influencing the life exepectancy.
